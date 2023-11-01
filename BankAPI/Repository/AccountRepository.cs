@@ -23,7 +23,8 @@ namespace BankAPI.Repository
         public Account GetAccount(string email)
         {
            return _context.Account
-                 .Include(a => a.Transactions)
+                 .Include(a => a.DestinationTransactions)
+                 .Include(a => a.OriginTransactions)
                  .Include(a => a.User)
                  .FirstOrDefault(a => a.User.Email == email);
         }

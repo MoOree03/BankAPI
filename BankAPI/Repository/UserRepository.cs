@@ -118,28 +118,43 @@ namespace BankAPI.Repository
         public async Task<User> Register(UserRegisterDto userRegisterDto)
         {
             string hashedPassword = HashPassword(userRegisterDto.Password);
-            _context.SaveChanges();
 
             var newUser = new User()
             {
                 Email = userRegisterDto.Email,
                 Password = hashedPassword,
                 Accounts = new List<Account>
-                    {
-                        new Account
-                        {
-                            AccountNumber = GenerateAccountNumber(), // Genera un número de cuenta (debes implementar esta función)
-                            AccountType = userRegisterDto.AccountType,
-                            Balance = 0
-                        }
-                    }
+        {
+            new Account
+            {
+                AccountNumber = GenerateAccountNumber(),
+                AccountType = userRegisterDto.AccountType,
+                Balance = 0
+            }
+        }
             };
-            _context.User.Add(newUser);
+
+            await _context.User.AddAsync(newUser);
             await _context.SaveChangesAsync();
 
-            return _context.User
-                .FirstOrDefault(u => u.Email.Equals(userRegisterDto.Email));
+            var newAccountId = newUser.Accounts.First().AccountId;
+
+            var accountOpen = new Transaction()
+            {
+                OriginAccountId = newAccountId,
+                DestinationAccountId = newAccountId,
+                TransactionType = 'A',
+                Value = 0
+            };
+
+            await _context.Transaction.AddAsync(accountOpen);
+            await _context.SaveChangesAsync();
+
+            return await _context.User
+                .Include(u => u.Accounts)
+                .FirstOrDefaultAsync(u => u.Email.Equals(userRegisterDto.Email));
         }
+
 
 
         public string HashPassword(string password)

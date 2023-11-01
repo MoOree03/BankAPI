@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data;
 
@@ -17,7 +18,8 @@ namespace BankAPI.Models
 
         [ForeignKey("UserId")]
         public virtual User User { get; set; }
-        public virtual ICollection<Transaction> Transactions { get; set; }
 
+        public virtual ICollection<Transaction> OriginTransactions { get; set; }
+        public virtual ICollection<Transaction> DestinationTransactions { get; set; }
     }
 }

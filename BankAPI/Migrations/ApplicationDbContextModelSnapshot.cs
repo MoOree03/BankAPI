@@ -37,8 +37,8 @@ namespace BankAPI.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(1)");
 
-                    b.Property<int>("Balance")
-                        .HasColumnType("int");
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("UserId")
                         .HasColumnType("int");
@@ -58,7 +58,10 @@ namespace BankAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionId"));
 
-                    b.Property<int>("AccountId")
+                    b.Property<int>("DestinationAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OriginAccountId")
                         .HasColumnType("int");
 
                     b.Property<string>("TransactionType")
@@ -70,7 +73,9 @@ namespace BankAPI.Migrations
 
                     b.HasKey("TransactionId");
 
-                    b.HasIndex("AccountId");
+                    b.HasIndex("DestinationAccountId");
+
+                    b.HasIndex("OriginAccountId");
 
                     b.ToTable("Transaction");
                 });
@@ -109,18 +114,28 @@ namespace BankAPI.Migrations
 
             modelBuilder.Entity("BankAPI.Models.Transaction", b =>
                 {
-                    b.HasOne("BankAPI.Models.Account", "Account")
-                        .WithMany("Transactions")
-                        .HasForeignKey("AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                    b.HasOne("BankAPI.Models.Account", "DestinationAccount")
+                        .WithMany("DestinationTransactions")
+                        .HasForeignKey("DestinationAccountId")
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
-                    b.Navigation("Account");
+                    b.HasOne("BankAPI.Models.Account", "OriginAccount")
+                        .WithMany("OriginTransactions")
+                        .HasForeignKey("OriginAccountId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("DestinationAccount");
+
+                    b.Navigation("OriginAccount");
                 });
 
             modelBuilder.Entity("BankAPI.Models.Account", b =>
                 {
-                    b.Navigation("Transactions");
+                    b.Navigation("DestinationTransactions");
+
+                    b.Navigation("OriginTransactions");
                 });
 
             modelBuilder.Entity("BankAPI.Models.User", b =>

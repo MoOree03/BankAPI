@@ -90,7 +90,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("MyPolicy",
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000") // Change this to your frontend's origin
+            builder.WithOrigins("http://localhost:3000") 
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();
@@ -106,7 +106,7 @@ var app = builder.Build();
     await initializer.InitializeAsync();
 }*/
 
-app.UseCors("MyPolicy"); // Esto debe estar antes de UseRouting()
+app.UseCors("MyPolicy"); 
 app.UseRouting();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

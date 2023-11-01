@@ -5,9 +5,8 @@ namespace BankAPI.Models.Dto.TransacionDto
 {
     public class CreateTransactionDto
     {
-        public int TransactionId { get; set; }
-        public int OriginAccountId { get; set; }
-        public int DestinationAccountId { get; set; }
+        public string OriginAccounNumber { get; set; }
+        public string DestinationAccountNumber { get; set; }
         public char TransactionType { get; set; }
         public decimal Value { get; set; }
 

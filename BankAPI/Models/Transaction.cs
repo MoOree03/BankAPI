@@ -10,15 +10,13 @@ namespace BankAPI.Models
         public int TransactionId { get; set; }
 
         public int OriginAccountId { get; set; }
-
         [ForeignKey("OriginAccountId")]
         public virtual Account OriginAccount { get; set; }
 
         public int DestinationAccountId { get; set; }
-
         [ForeignKey("DestinationAccountId")]
         public virtual Account DestinationAccount { get; set; }
-
+            
         [Required]
         public char TransactionType { get; set; } // 'C' for Consult, 'R' for Withdraw, 'D' for Deposit, 'A' for Account Open, 'T' for Transfer
 

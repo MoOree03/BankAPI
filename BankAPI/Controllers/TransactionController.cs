@@ -31,39 +31,36 @@ namespace BankAPI.Controllers
         }
 
 
-        [HttpGet("{accountID:int}", Name = "GetTransactionByAccount")]
+        [HttpGet("{accountNumber}", Name = "GetTransactionByAccount")]
         [ResponseCache(CacheProfileName = "DefaultCache")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public IActionResult GetTransactionByAccount(int accountID)
+        public IActionResult GetTransactionByAccount(string accountNumber)
         {
-            var listTransaction = _transactionRep.GetTransactions(accountID);
-            var listTransactionDto = new List<TransactionDto>();
-            if (listTransaction == null)
+            var listTransaction = _transactionRep.GetTransactions(accountNumber);
+            if (listTransaction.Count == 0)
             {
                 return BadRequest("There are not transactions");
             }
-            foreach (var transaction in listTransaction)
-            {
-                listTransactionDto.Add(_mapper.Map<TransactionDto>(transaction));
-            }
+            var listTransactionDto = _mapper.Map<List<TransactionDto>>(listTransaction);
             return Ok(listTransactionDto);
         }
 
+
         [HttpPost]
-        [ProducesResponseType(201, Type = typeof(TransactionDto))]
+        [ProducesResponseType(201, Type = typeof(CreateTransactionDto))]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreateTransaction([FromBody] CreateTransactionDto newTransaction)
+        public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionDto newTransaction)
         {
             if (!ModelState.IsValid || newTransaction == null)
             {
                 return BadRequest(ModelState);
             }
 
-            if (!_transactionRep.CreateTransaction(newTransaction))
+            if (! await _transactionRep.CreateTransaction(newTransaction))
             {
                 ModelState.AddModelError("", $"Something failed saving the transaction -> {newTransaction.TransactionType}");
                 return StatusCode(500, ModelState);

@@ -9,8 +9,8 @@ namespace BankAPI.Repository.IRepository
     public interface ITransactionRepository
     {
         Transaction GetTransaction(int id);
-        ICollection<Transaction> GetTransactions(int accountID);
-        bool CreateTransaction(CreateTransactionDto newTransaction);
+        ICollection<TransactionDto> GetTransactions(string accountNumber);
+        Task<bool> CreateTransaction(CreateTransactionDto newTransaction);
         bool save();
     }
 }

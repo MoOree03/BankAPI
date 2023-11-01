@@ -32,7 +32,7 @@ namespace BankAPI.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     AccountNumber = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AccountType = table.Column<string>(type: "nvarchar(1)", nullable: false),
-                    Balance = table.Column<int>(type: "int", nullable: false),
+                    Balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     UserId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -52,7 +52,8 @@ namespace BankAPI.Migrations
                 {
                     TransactionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    AccountId = table.Column<int>(type: "int", nullable: false),
+                    OriginAccountId = table.Column<int>(type: "int", nullable: false),
+                    DestinationAccountId = table.Column<int>(type: "int", nullable: false),
                     TransactionType = table.Column<string>(type: "nvarchar(1)", nullable: false),
                     Value = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
                 },
@@ -60,11 +61,15 @@ namespace BankAPI.Migrations
                 {
                     table.PrimaryKey("PK_Transaction", x => x.TransactionId);
                     table.ForeignKey(
-                        name: "FK_Transaction_Account_AccountId",
-                        column: x => x.AccountId,
+                        name: "FK_Transaction_Account_DestinationAccountId",
+                        column: x => x.DestinationAccountId,
                         principalTable: "Account",
-                        principalColumn: "AccountId",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "AccountId");
+                    table.ForeignKey(
+                        name: "FK_Transaction_Account_OriginAccountId",
+                        column: x => x.OriginAccountId,
+                        principalTable: "Account",
+                        principalColumn: "AccountId");
                 });
 
             migrationBuilder.CreateIndex(
@@ -73,9 +78,14 @@ namespace BankAPI.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Transaction_AccountId",
+                name: "IX_Transaction_DestinationAccountId",
                 table: "Transaction",
-                column: "AccountId");
+                column: "DestinationAccountId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Transaction_OriginAccountId",
+                table: "Transaction",
+                column: "OriginAccountId");
         }
 
         /// <inheritdoc />

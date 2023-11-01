@@ -14,24 +14,24 @@ namespace BankAPI.Repository
             _context = context;
         }
 
-        public bool CreateTransaction(CreateTransactionDto createTransactionDto)
+        public async Task<bool> CreateTransaction(CreateTransactionDto createTransactionDto)
         {
+            int accountDestinationId = (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.DestinationAccountNumber)).AccountId;
+            int accountOriginId = (createTransactionDto.OriginAccounNumber == "-1") ? accountDestinationId : (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.OriginAccounNumber)).AccountId;
+
             switch (createTransactionDto.TransactionType)
             {
                 case 'C': // Consult
-                    return CreateConsultTransaction(createTransactionDto.OriginAccountId, createTransactionDto.Value);
+                    return CreateConsultTransaction(accountDestinationId, createTransactionDto.Value);
 
                 case 'R': // Withdraw
-                    return CreateWithdrawTransaction(createTransactionDto.OriginAccountId, createTransactionDto.Value);
+                    return CreateWithdrawTransaction(accountOriginId, createTransactionDto.Value);
 
                 case 'D': // Deposit
-                    return CreateDepositTransaction(createTransactionDto.OriginAccountId, createTransactionDto.Value);
-
-                case 'A': // Account Open
-                    return CreateAccountOpenTransaction(createTransactionDto.OriginAccountId, createTransactionDto.Value);
+                    return CreateDepositTransaction(accountOriginId, createTransactionDto.Value);
 
                 case 'T': // Transfer
-                    return CreateTransferTransaction(createTransactionDto.OriginAccountId, createTransactionDto.DestinationAccountId, createTransactionDto.Value);
+                    return CreateTransferTransaction(accountOriginId, accountDestinationId, createTransactionDto.Value);
 
                 default:
                     // Handle unsupported transaction type
@@ -48,12 +48,28 @@ namespace BankAPI.Repository
                 .FirstOrDefault(u => u.TransactionId == id);
         }
 
-        public ICollection<Transaction> GetTransactions(int accountId)
+        public ICollection<TransactionDto> GetTransactions(string accountNumber)
         {
-            return _context.Transaction
-                .Where(e => e.OriginAccountId == accountId)
+            int accountId = _context.Account.FirstOrDefault(e => e.AccountNumber == accountNumber).AccountId;
+            if (accountId == default(int)) { return null; } // default(int) is 0 for int.
+
+            var transactions = _context.Transaction
+                .Include(t => t.OriginAccount)
+                .Include(t => t.DestinationAccount)
+                .Where(e => e.OriginAccountId == accountId || e.DestinationAccountId == accountId)
+                .Select(t => new TransactionDto
+                {
+                    OriginAccountNumber = t.OriginAccount.AccountNumber,
+                    DestinationAccountNumber = t.DestinationAccount.AccountNumber,
+                    TransactionType = t.TransactionType,
+                    Value = t.Value
+                })
                 .ToList();
+
+            return transactions;
         }
+
+
 
         public bool save()
         {
@@ -95,6 +111,7 @@ namespace BankAPI.Repository
             var transaction = new Transaction
             {
                 OriginAccountId = accountId,
+                DestinationAccountId = accountId,
                 TransactionType = 'R', // 'R' for Withdraw
                 Value = value
             };
@@ -117,6 +134,7 @@ namespace BankAPI.Repository
             var transaction = new Transaction
             {
                 DestinationAccountId = accountId,
+                OriginAccountId = accountId,
                 TransactionType = 'D', // 'D' for Deposit
                 Value = value
             };
@@ -126,34 +144,7 @@ namespace BankAPI.Repository
 
             return save(); // Save the transaction and update the account balance
         }
-        public bool CreateAccountOpenTransaction(int accountId, decimal initialBalance)
-        {
-            // Check if the account already exists
-            var account = _context.Account.FirstOrDefault(a => a.AccountId == accountId);
-            if (account != null)
-            {
-                return false; // Transaction failed
-            }
 
-            // Create a new account and a transaction for the account open
-            var newAccount = new Account
-            {
-                AccountId = accountId,
-                Balance = initialBalance
-            };
-
-            var transaction = new Transaction
-            {
-                OriginAccountId = accountId,
-                TransactionType = 'A', // 'A' for Account Open
-                Value = initialBalance
-            };
-
-            _context.Account.Add(newAccount);
-            _context.Transaction.Add(transaction);
-
-            return save(); // Save the account and transaction
-        }
         public bool CreateTransferTransaction(int originAccountId, int destinationAccountId, decimal value)
         {
             // Check if both accounts exist and the origin account has sufficient balance for the transfer
@@ -181,6 +172,6 @@ namespace BankAPI.Repository
             return save(); // Save the transaction and update the account balances
         }
 
-      
+
     }
 }
