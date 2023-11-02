@@ -12,5 +12,6 @@ namespace BankAPI.Repository.IRepository
         ICollection<TransactionDto> GetTransactions(string accountNumber);
         Task<bool> CreateTransaction(CreateTransactionDto newTransaction);
         bool save();
+        string Decrypt(string encryptedText);
     }
 }

@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
@@ -48,29 +50,32 @@ namespace BankAPI.Controllers
 
 
         [HttpPost]
-        [ProducesResponseType(201, Type = typeof(CreateTransactionDto))]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionDto newTransaction)
+        public async Task<IActionResult> CreateTransaction([FromBody] string encryptedData)
         {
-            if (!ModelState.IsValid || newTransaction == null)
+          
+            var decryptedData = _transactionRep.Decrypt(encryptedData);
+
+
+            var newTransaction = JsonConvert.DeserializeObject<CreateTransactionDto>(decryptedData);
+
+
+            if (newTransaction == null || !ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            if (! await _transactionRep.CreateTransaction(newTransaction))
+            if (!await _transactionRep.CreateTransaction(newTransaction))
             {
                 ModelState.AddModelError("", $"Something failed saving the transaction -> {newTransaction.TransactionType}");
                 return StatusCode(500, ModelState);
             }
+
             return Ok(new
             {
                 Message = "Transaction created successfully",
-
             });
         }
+
 
     }
 }

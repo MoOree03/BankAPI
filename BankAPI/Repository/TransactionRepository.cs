@@ -3,26 +3,31 @@ using BankAPI.Models;
 using BankAPI.Models.Dto.TransacionDto;
 using BankAPI.Repository.IRepository;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace BankAPI.Repository
 {
     public class TransactionRepository : ITransactionRepository
     {
         private readonly ApplicationDbContext _context;
+        private readonly IConfiguration _configuration;
         public TransactionRepository(ApplicationDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
         }
 
         public async Task<bool> CreateTransaction(CreateTransactionDto createTransactionDto)
         {
+
             int accountDestinationId = (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.DestinationAccountNumber)).AccountId;
             int accountOriginId = (createTransactionDto.OriginAccounNumber == "-1") ? accountDestinationId : (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.OriginAccounNumber)).AccountId;
 
             switch (createTransactionDto.TransactionType)
             {
-                case 'C': // Consult
-                    return CreateConsultTransaction(accountDestinationId, createTransactionDto.Value);
 
                 case 'R': // Withdraw
                     return CreateWithdrawTransaction(accountOriginId, createTransactionDto.Value);
@@ -65,7 +70,7 @@ namespace BankAPI.Repository
                     Value = t.Value
                 })
                 .ToList();
-
+            CreateConsultTransaction(accountId);
             return transactions;
         }
 
@@ -76,25 +81,19 @@ namespace BankAPI.Repository
             return _context.SaveChanges() >= 0 ? true : false;
         }
 
-        public bool CreateConsultTransaction(int accountId, decimal value)
+        public bool CreateConsultTransaction(int accountId)
         {
-            // Check if the account exists and has sufficient balance for the consult
-            var account = _context.Account.FirstOrDefault(a => a.AccountId == accountId);
-            if (account == null || account.Balance < value)
-            {
-                return false; // Transaction failed
-            }
-
+           
             // Create a new transaction for the consult
             var transaction = new Transaction
             {
                 OriginAccountId = accountId,
+                DestinationAccountId = accountId,
                 TransactionType = 'C', // 'C' for Consult
-                Value = value
+                Value = 0
             };
 
             _context.Transaction.Add(transaction);
-            account.Balance -= value; // Adjust the balance
 
             return save(); // Save the transaction and update the account balance
         }
@@ -172,6 +171,34 @@ namespace BankAPI.Repository
             return save(); // Save the transaction and update the account balances
         }
 
+        public string Decrypt(string encryptedText)
+        {
+            byte[] initVectorBytes = Encoding.UTF8.GetBytes(_configuration["ApiSettings:Phrase"]); 
+            byte[] cipherTextBytes = Convert.FromBase64String(encryptedText);
+            byte[] keyBytes = Encoding.UTF8.GetBytes(_configuration["ApiSettings:AES_Key"]);
 
+            byte[] plainTextBytes = new byte[cipherTextBytes.Length];
+
+            using (AesCryptoServiceProvider aes = new AesCryptoServiceProvider())
+            {
+                aes.KeySize = 256;
+                aes.BlockSize = 128;
+                aes.Mode = CipherMode.CBC;
+                aes.Padding = PaddingMode.PKCS7;
+                aes.IV = initVectorBytes;
+                aes.Key = keyBytes;
+
+                using (ICryptoTransform decryptor = aes.CreateDecryptor(aes.Key, aes.IV))
+                using (MemoryStream memoryStream = new MemoryStream(cipherTextBytes))
+                using (CryptoStream cryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read))
+                {
+                    int decryptedByteCount = cryptoStream.Read(plainTextBytes, 0, plainTextBytes.Length);
+                    memoryStream.Close();
+                    cryptoStream.Close();
+
+                    return Encoding.UTF8.GetString(plainTextBytes, 0, decryptedByteCount);
+                }
+            }
+        }
     }
 }
