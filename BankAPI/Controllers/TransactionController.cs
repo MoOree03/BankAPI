@@ -50,32 +50,62 @@ namespace BankAPI.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> CreateTransaction([FromBody] string encryptedData)
+        public async Task<IActionResult> CreateTransaction([FromBody] JObject encryptedDataWrapper)
         {
+            string encryptedData = encryptedDataWrapper["data"].ToString();
+            try
+            {
+                var decryptedData = _transactionRep.Decrypt(encryptedData);
+
+
+                var settings = new JsonSerializerSettings();
+                settings.Converters.Add(new StringToDecimalConverter());
+
+                var newTransaction = JsonConvert.DeserializeObject<CreateTransactionDto>(decryptedData, settings);
+
+
+
+                if (newTransaction == null || !ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                if (!await _transactionRep.CreateTransaction(newTransaction))
+                {
+                    ModelState.AddModelError("", $"Something failed saving the transaction -> {newTransaction.TransactionType}");
+                    return StatusCode(500, ModelState);
+                }
+
+                return Ok(new
+                {
+                    Message = "Transaction created successfully",
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+                throw;
+            }
           
-            var decryptedData = _transactionRep.Decrypt(encryptedData);
-
-
-            var newTransaction = JsonConvert.DeserializeObject<CreateTransactionDto>(decryptedData);
-
-
-            if (newTransaction == null || !ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            if (!await _transactionRep.CreateTransaction(newTransaction))
-            {
-                ModelState.AddModelError("", $"Something failed saving the transaction -> {newTransaction.TransactionType}");
-                return StatusCode(500, ModelState);
-            }
-
-            return Ok(new
-            {
-                Message = "Transaction created successfully",
-            });
         }
 
+        public class StringToDecimalConverter : JsonConverter
+        {
+            public override bool CanConvert(Type objectType)
+            {
+                return objectType == typeof(decimal);
+            }
+
+            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
+            {
+                return Decimal.Parse(reader.Value.ToString());
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
+            {
+                writer.WriteValue(value.ToString());
+            }
+        }
 
     }
 }

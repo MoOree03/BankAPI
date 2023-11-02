@@ -24,19 +24,19 @@ namespace BankAPI.Repository
         {
 
             int accountDestinationId = (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.DestinationAccountNumber)).AccountId;
-            int accountOriginId = (createTransactionDto.OriginAccounNumber == "-1") ? accountDestinationId : (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.OriginAccounNumber)).AccountId;
+            int accountOriginId = (createTransactionDto.OriginAccountNumber == "-1") ? accountDestinationId : (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.OriginAccountNumber)).AccountId;
 
             switch (createTransactionDto.TransactionType)
             {
 
-                case 'R': // Withdraw
-                    return CreateWithdrawTransaction(accountOriginId, createTransactionDto.Value);
+                //case 'R': // Withdraw
+                //    return CreateWithdrawTransaction(accountOriginId, createTransactionDto.Value);
 
-                case 'D': // Deposit
-                    return CreateDepositTransaction(accountOriginId, createTransactionDto.Value);
+                //case 'D': // Deposit
+                //    return CreateDepositTransaction(accountOriginId, createTransactionDto.Value);
 
-                case 'T': // Transfer
-                    return CreateTransferTransaction(accountOriginId, accountDestinationId, createTransactionDto.Value);
+                //case 'T': // Transfer
+                //    return CreateTransferTransaction(accountOriginId, accountDestinationId, createTransactionDto.Value);
 
                 default:
                     // Handle unsupported transaction type
@@ -173,9 +173,9 @@ namespace BankAPI.Repository
 
         public string Decrypt(string encryptedText)
         {
-            byte[] initVectorBytes = Encoding.UTF8.GetBytes(_configuration["ApiSettings:Phrase"]); 
+            byte[] initVectorBytes = Encoding.UTF8.GetBytes("pemgail9uzpgzl88"); 
             byte[] cipherTextBytes = Convert.FromBase64String(encryptedText);
-            byte[] keyBytes = Encoding.UTF8.GetBytes(_configuration["ApiSettings:AES_Key"]);
+            byte[] keyBytes = Encoding.UTF8.GetBytes("0123456789ABCDEF0123456789ABCDEF");
 
             byte[] plainTextBytes = new byte[cipherTextBytes.Length];
 
