@@ -86,11 +86,11 @@ builder.Services.AddAuthentication(options =>
 );
 
 builder.Services.AddCors(options =>
-{
+{   
     options.AddPolicy("MyPolicy",
         builder =>
         {
-            builder.WithOrigins("http://localhost:3000") 
+            builder.WithOrigins("http://localhost:3000","https://79ed-186-112-17-197.ngrok-free.app") 
                    .AllowAnyMethod()
                    .AllowAnyHeader()
                    .AllowCredentials();
@@ -109,6 +109,7 @@ var app = builder.Build();
 app.UseCors("MyPolicy"); 
 app.UseRouting();
 // Configure the HTTP request pipeline.
+
     app.UseSwagger();
     app.UseSwaggerUI();
 

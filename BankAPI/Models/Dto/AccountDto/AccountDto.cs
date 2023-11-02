@@ -8,7 +8,7 @@ namespace BankAPI.Models.Dto.AccountDto
         public string Email { get; set; }
         public string AccountNumber { get; set; }
         public char AccountType { get; set; } // 'S' for Savings or 'C' for Current
-        public int Balance { get; set; }      
+        public decimal Balance { get; set; }      
         public virtual ICollection<Transaction> Transactions { get; set; }
 
     }

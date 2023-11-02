@@ -32,7 +32,6 @@ namespace BankAPI.Controllers
 
 
         [HttpGet("{accountNumber}", Name = "GetTransactionByAccount")]
-        [ResponseCache(CacheProfileName = "DefaultCache")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public IActionResult GetTransactionByAccount(string accountNumber)
