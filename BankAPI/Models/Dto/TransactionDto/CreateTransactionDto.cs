@@ -7,7 +7,7 @@ namespace BankAPI.Models.Dto.TransacionDto
     {
         public string OriginAccountNumber { get; set; }
         public string DestinationAccountNumber { get; set; }
-        public char TransactionType { get; set; }
+        public string TransactionType { get; set; }
         public string Value { get; set; }
 
     }

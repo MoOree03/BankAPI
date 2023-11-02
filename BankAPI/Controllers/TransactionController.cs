@@ -50,29 +50,22 @@ namespace BankAPI.Controllers
 
 
         [HttpPost]
-        public async Task<IActionResult> CreateTransaction([FromBody] JObject encryptedDataWrapper)
+        public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionDto encryptedDataWrapper)
         {
-            string encryptedData = encryptedDataWrapper["data"].ToString();
+            if (encryptedDataWrapper == null || !ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
             try
             {
-                var decryptedData = _transactionRep.Decrypt(encryptedData);
+                // Decrypt the DTO values
+                DecryptDtoValues(encryptedDataWrapper);
 
-
-                var settings = new JsonSerializerSettings();
-                settings.Converters.Add(new StringToDecimalConverter());
-
-                var newTransaction = JsonConvert.DeserializeObject<CreateTransactionDto>(decryptedData, settings);
-
-
-
-                if (newTransaction == null || !ModelState.IsValid)
+                bool isTransactionCreated = await _transactionRep.CreateTransaction(encryptedDataWrapper);
+                if (!isTransactionCreated)
                 {
-                    return BadRequest(ModelState);
-                }
-
-                if (!await _transactionRep.CreateTransaction(newTransaction))
-                {
-                    ModelState.AddModelError("", $"Something failed saving the transaction -> {newTransaction.TransactionType}");
+                    ModelState.AddModelError("", $"Something failed saving the transaction -> {encryptedDataWrapper.TransactionType}");
                     return StatusCode(500, ModelState);
                 }
 
@@ -83,28 +76,30 @@ namespace BankAPI.Controllers
             }
             catch (Exception ex)
             {
+                // Logging the exception would be a good idea here for further debugging
                 return BadRequest(ex.Message);
-                throw;
             }
-          
         }
 
-        public class StringToDecimalConverter : JsonConverter
+        private void DecryptDtoValues(CreateTransactionDto dto)
         {
-            public override bool CanConvert(Type objectType)
-            {
-                return objectType == typeof(decimal);
-            }
+            dto.OriginAccountNumber = CleanValue(_transactionRep.Decrypt(dto.OriginAccountNumber));
+            dto.TransactionType = CleanValue(_transactionRep.Decrypt(dto.TransactionType));
+            dto.DestinationAccountNumber = CleanValue(_transactionRep.Decrypt(dto.DestinationAccountNumber));
+            dto.Value = CleanValue(_transactionRep.Decrypt(dto.Value));
+        }
+        private string CleanValue(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
 
-            public override object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-            {
-                return Decimal.Parse(reader.Value.ToString());
-            }
+            // Remover las comillas adicionales
+            string cleaned = input.Trim('"');
 
-            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-            {
-                writer.WriteValue(value.ToString());
-            }
+            // Remover los caracteres de nueva línea o retorno de carro
+            cleaned = cleaned.Replace("\n", "").Replace("\r", "");
+
+            return cleaned;
         }
 
     }

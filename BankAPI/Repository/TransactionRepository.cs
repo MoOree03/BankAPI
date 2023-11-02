@@ -23,20 +23,20 @@ namespace BankAPI.Repository
         public async Task<bool> CreateTransaction(CreateTransactionDto createTransactionDto)
         {
 
-            int accountDestinationId = (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.DestinationAccountNumber)).AccountId;
+                int accountDestinationId = (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.DestinationAccountNumber)).AccountId;
             int accountOriginId = (createTransactionDto.OriginAccountNumber == "-1") ? accountDestinationId : (await _context.Account.FirstOrDefaultAsync(e => e.AccountNumber == createTransactionDto.OriginAccountNumber)).AccountId;
 
-            switch (createTransactionDto.TransactionType)
+            switch (createTransactionDto.TransactionType[0])
             {
 
-                //case 'R': // Withdraw
-                //    return CreateWithdrawTransaction(accountOriginId, createTransactionDto.Value);
+                case 'R': // Withdraw
+                    return CreateWithdrawTransaction(accountOriginId, Decimal.Parse(createTransactionDto.Value));
 
-                //case 'D': // Deposit
-                //    return CreateDepositTransaction(accountOriginId, createTransactionDto.Value);
+                case 'D': // Deposit
+                    return CreateDepositTransaction(accountOriginId, Decimal.Parse(createTransactionDto.Value));
 
-                //case 'T': // Transfer
-                //    return CreateTransferTransaction(accountOriginId, accountDestinationId, createTransactionDto.Value);
+                case 'T': // Transfer
+                    return CreateTransferTransaction(accountOriginId, accountDestinationId, Decimal.Parse(createTransactionDto.Value));
 
                 default:
                     // Handle unsupported transaction type
