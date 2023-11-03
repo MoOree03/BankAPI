@@ -7,8 +7,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.IdentityModel.Tokens.Jwt;
 using System.Net;
@@ -48,28 +50,56 @@ namespace BankAPI.Controllers
 
 
         [HttpPost]
-        [ProducesResponseType(201, Type = typeof(CreateTransactionDto))]
-        [ProducesResponseType(StatusCodes.Status201Created)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionDto newTransaction)
+        public async Task<IActionResult> CreateTransaction([FromBody] CreateTransactionDto encryptedDataWrapper)
         {
-            if (!ModelState.IsValid || newTransaction == null)
+            if (encryptedDataWrapper == null || !ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            if (! await _transactionRep.CreateTransaction(newTransaction))
+            try
             {
-                ModelState.AddModelError("", $"Something failed saving the transaction -> {newTransaction.TransactionType}");
-                return StatusCode(500, ModelState);
-            }
-            return Ok(new
-            {
-                Message = "Transaction created successfully",
+                // Decrypt the DTO values
+                DecryptDtoValues(encryptedDataWrapper);
 
-            });
+                bool isTransactionCreated = await _transactionRep.CreateTransaction(encryptedDataWrapper);
+                if (!isTransactionCreated)
+                {
+                    ModelState.AddModelError("", $"Something failed saving the transaction -> {encryptedDataWrapper.TransactionType}");
+                    return StatusCode(500, ModelState);
+                }
+
+                return Ok(new
+                {
+                    Message = "Transaction created successfully",
+                });
+            }
+            catch (Exception ex)
+            {
+                // Logging the exception would be a good idea here for further debugging
+                return BadRequest(ex.Message);
+            }
+        }
+
+        private void DecryptDtoValues(CreateTransactionDto dto)
+        {
+            dto.OriginAccountNumber = CleanValue(_transactionRep.Decrypt(dto.OriginAccountNumber));
+            dto.TransactionType = CleanValue(_transactionRep.Decrypt(dto.TransactionType));
+            dto.DestinationAccountNumber = CleanValue(_transactionRep.Decrypt(dto.DestinationAccountNumber));
+            dto.Value = CleanValue(_transactionRep.Decrypt(dto.Value));
+        }
+        private string CleanValue(string input)
+        {
+            if (string.IsNullOrEmpty(input))
+                return input;
+
+            // Remover las comillas adicionales
+            string cleaned = input.Trim('"');
+
+            // Remover los caracteres de nueva línea o retorno de carro
+            cleaned = cleaned.Replace("\n", "").Replace("\r", "");
+
+            return cleaned;
         }
 
     }

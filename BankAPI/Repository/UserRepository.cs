@@ -195,9 +195,13 @@ namespace BankAPI.Repository
         {
             Random random = new Random();
             string accountNumber = string.Empty;
-            for (int i = 0; i < 20; i++) accountNumber += random.Next(0, 10).ToString();
+            for (int i = 0; i < 10; i++) 
+            {
+                accountNumber += random.Next(0, 10).ToString();
+            }
             return accountNumber;
         }
+
 
         public ICollection<User> GetUsers()
         {
